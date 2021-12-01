@@ -593,8 +593,8 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
             # std dev of mass is based on our physical limits of identifying neutron stars at a specific mass.
             m1_new = m1_old + np.random.normal(0.0, 0.01)
             m2_new = m2_old + np.random.normal(0.0, 0.01)
-            # since lambda is based on mass, the distribution of lambda must also take mass into account.
-            # we will apply the same offset given std dev to both lambdas to preserve the trend of the EOS.
+            # since lambda is based a function of mass, the distribution of lambda must also take mass into account.
+            # we will apply the same offset given std dev to both lambdas to preserve important physical trends.
             # the rough values of these std devs is based on studies of the likely distribution of equations 
             # of state of neutron stars.
             l_norm = np.random.normal(0.0, 1.0)
