@@ -9,15 +9,6 @@ from PIL import Image
 from pathlib import Path
 from matplotlib import pyplot as plt
 
-''' the gan needs one batch of data at a time, nothing else. the data needs to be:
-    - self.objects
-
-    nothing else need be stored in memory at any given time, save perhaps for a list of the pathways to each
-    file we'd like to include in the dataset (and perhaps a similar list for the label info, if we decide to 
-    store it separately)
-
-    when a call is made to the class from the gan, that's when the dataset class should batch data. 
-'''
 # ---------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------
 class Dataset():    
