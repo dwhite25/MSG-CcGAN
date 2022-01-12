@@ -1,5 +1,8 @@
 '''
 houses main classes and functions for MSG-GAN architecture for time series.
+
+this is a copy of the original msggan file, made for experimentation. I will be trying to process
+each of the two (maybe eventually three?) channels independently in this version.
 '''
 
 import tensorflow as tf
@@ -15,7 +18,7 @@ from tensorflow import keras as K
 from tensorflow.keras import Model, backend
 from tensorflow.keras.layers import Layer, Dense, Conv2D, Conv1D, Conv2DTranspose, Conv1DTranspose
 from tensorflow.keras.layers import AveragePooling2D, AveragePooling1D, UpSampling2D, UpSampling1D
-from tensorflow.keras.layers import Concatenate, LeakyReLU, Reshape, Input, Dot
+from tensorflow.keras.layers import Concatenate, LeakyReLU, Reshape, Input, Dot, Multiply
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.optimizers import Adam, RMSprop, schedules
 from tensorflow.keras.initializers import RandomNormal
@@ -27,7 +30,7 @@ class DenseEQ(Dense):
     def __init__(self, channels, **kwargs):
         if 'kernel_initializer' in kwargs:
             raise Exception("Cannot override kernel_initializer")
-        super().__init__(channels, kernel_initializer=RandomNormal(mean=0.0, stddev=2), **kwargs)
+        super().__init__(channels, kernel_initializer=RandomNormal(mean=0.0, stddev=1), **kwargs)
 
     # -----------------------------------------------------------------------------------------------
     def build(self, input_shape):
@@ -41,7 +44,7 @@ class DenseEQ(Dense):
     def call(self, inputs):
         output = backend.dot(inputs, self.kernel*self.c) # scale kernel
         if self.use_bias:
-            output = tf.nn.bias_add(output, self.bias)
+            output = tf.nn.bias_add(output, self.bias*self.c)
         if self.activation is not None:
             output = self.activation(output)
         return output
@@ -54,7 +57,7 @@ class Conv1DEQ(Conv1D):
     def __init__(self, channels, **kwargs):
         if 'kernel_initializer' in kwargs:
             raise Exception("Cannot override kernel_initializer")
-        super().__init__(channels, kernel_initializer=RandomNormal(mean=0.0, stddev=2), **kwargs)
+        super().__init__(channels, kernel_initializer=RandomNormal(mean=0.0, stddev=1), **kwargs)
 
     # -----------------------------------------------------------------------------------------------
     def build(self, input_shape):
@@ -68,7 +71,7 @@ class Conv1DEQ(Conv1D):
                  padding='SAME', data_format='NWC')
 
         if self.use_bias:
-            outputs = tf.nn.bias_add(outputs, self.bias, data_format='NWC')
+            outputs = tf.nn.bias_add(outputs, self.bias*self.c, data_format='NWC')
 
         if self.activation is not None:
             return self.activation(outputs)
@@ -83,7 +86,7 @@ class Conv1DTransposeEQ(Conv1DTranspose):
         self.out_shape = out_shape
         if 'kernel_initializer' in kwargs:
             raise Exception("Cannot override kernel_initializer")
-        super().__init__(channels, kernel_initializer=RandomNormal(mean=0.0, stddev=2), **kwargs)
+        super().__init__(channels, kernel_initializer=RandomNormal(mean=0.0, stddev=1), **kwargs)
 
     # -----------------------------------------------------------------------------------------------
     def build(self, input_shape):
@@ -97,7 +100,7 @@ class Conv1DTransposeEQ(Conv1DTranspose):
                 strides=self.strides, padding='SAME', data_format='NWC')
 
         if self.use_bias:
-            outputs = tf.nn.bias_add(outputs, self.bias, data_format='NWC')
+            outputs = tf.nn.bias_add(outputs, self.bias*self.c, data_format='NWC')
 
         if self.activation is not None:
             return self.activation(outputs)
@@ -134,6 +137,7 @@ class MSG_GAN_ts:
                  epsilon=1e-3, eps2=1e-7, beta1=0.5, beta2=0.999, rho=0.9, momentum=0.0, endres=128,
                  outpath='', nchannels=3, ksize=5, usebias=False, startres=4, **kwargs):
         self.neurs      = neurs
+        self.nlabels    = 4
         self.epochs     = epochs
         self.batch_size = batch_size
         self.outpath    = outpath
@@ -150,7 +154,6 @@ class MSG_GAN_ts:
         self.startres   = startres
         self.endres     = endres
         self.nchannels  = nchannels
-        self.nlabels    = 4
         self.kernels    = 0
         self.ksize      = ksize
         self.to_ts      = []     
@@ -250,21 +253,19 @@ class MSG_GAN_ts:
         self.nchannels  = reals.nchannels
         self.nlabels    = reals.nlabels
 
+        np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)   
+
         g_train_loss    = Mean()
         d_train_loss    = Mean()
-
-        np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)   
 
         assert self.endres != 0, 'the size of endres was not correctly stored'
         assert self.nchannels != 0, 'the number of channels was not correctly stored'
 
         for epoch in range(self.epochs):
             reals.create_batch()
-            d_loss  = self.train_d(reals)
-            g_loss  = self.train_g(reals)
-            d_train_loss(d_loss)
-            g_train_loss(g_loss)
-            self.print_losses(epoch, g_train_loss.result(), d_train_loss.result())
+            d_loss, d_grad  = self.train_d(reals)
+            g_loss, g_grad  = self.train_g(reals)
+            self.print_losses(epoch, g_loss, g_train_loss, g_grad, d_loss, d_train_loss, d_grad)
 
             if epoch % 100 == 0:
                 outputs = self.generate_samples(reals)
@@ -286,7 +287,7 @@ class MSG_GAN_ts:
         tf.cond(goods, lambda: self.g_opt.apply_gradients(zip(grads, self.G.trainable_variables)), 
                                                                                 false_fn=tf.no_op)
 
-        return loss
+        return loss, grads
 
     # -----------------------------------------------------------------------------------------------
     @tf.function
@@ -303,7 +304,7 @@ class MSG_GAN_ts:
         tf.cond(goods, lambda: self.d_opt.apply_gradients(zip(grads, self.D.trainable_variables)), 
                                                                                 false_fn=tf.no_op)
 
-        return loss
+        return loss, grads
 
     # -----------------------------------------------------------------------------------------------
     def get_g_loss(self, yfake):
@@ -335,12 +336,19 @@ class MSG_GAN_ts:
         return loss
 
     # -----------------------------------------------------------------------------------------------
-    def makewaves(self, reals):
+    def makewaves(self, epoch):
         print('starting wave generation')
         print('')
 
-        outputs = self.generate_samples(reals)
-        reals.save_objects(outputs[0], self.outpath)
+        outputs = self.generate_samples()
+        reals.save_objects(outputs[0], epoch, self.outpath)
+
+    # -----------------------------------------------------------------------------------------------
+    @tf.function
+    def generate_samples(self):
+        noise  = np.random.normal(size=[self.batch_size, self.neurs], loc=0.0, scale=1.0)
+
+        return self.G(noise, training=False)
 
     # -----------------------------------------------------------------------------------------------
     # modifies labels with gaussian offsets and saves objects
@@ -354,24 +362,21 @@ class MSG_GAN_ts:
         return tensrs
 
     # -----------------------------------------------------------------------------------------------
-    def print_losses(self, epoch, g_train_loss, d_train_loss):
+    def print_losses(self, epoch, g_loss, g_train_loss, g_grad, d_loss, d_train_loss, d_grad):
+        g_zeroes = np.mean([tf.math.zero_fraction(g_grad[i]) for i in range(np.shape(g_grad)[0])])
+        d_zeroes = np.mean([tf.math.zero_fraction(d_grad[i]) for i in range(np.shape(d_grad)[0])])
+        g_train_loss(tf.math.abs(g_loss))
+        d_train_loss(tf.math.abs(d_loss))
         if epoch == 0:
             print('LOSSES:')
             print('# ---------------------------------------------------------')
-        print('epoch %d:   Generator: %f    Discriminator: %f    Difference: %f' 
-                %(epoch, g_train_loss, d_train_loss, g_train_loss - d_train_loss))
+        print('epoch %d:   Generator: %f    Discriminator: %f' 
+                %(epoch, g_train_loss.result(), d_train_loss.result()))
         Path(self.outpath).mkdir(exist_ok=True)
         Path(self.outpath + '/weights').mkdir(exist_ok=True)
         with open(self.outpath + '/weights/losses.csv', 'a', newline='') as f:
 	        writer = csv.writer(f)
-	        writer.writerow([int(epoch), float(g_train_loss), float(d_train_loss)])
-
-    # -----------------------------------------------------------------------------------------------
-    @tf.function
-    def generate_samples(self, reals):
-        noise  = np.random.normal(size=[self.batch_size, self.neurs], loc=0.0, scale=1.0)
-
-        return self.G(noise, training=False)
+	        writer.writerow([int(epoch), float(g_train_loss.result()), float(d_train_loss.result())])
 
     # -----------------------------------------------------------------------------------------------
     # this can be overridden in subclasses if we find different architectures require different opts
@@ -403,7 +408,7 @@ class MSG_GAN_ts:
     def pixel_norm(self, x, epsilon=1e-8):
         epsilon = tf.constant(epsilon, dtype=x.dtype)
 
-        return x * tf.math.rsqrt(tf.reduce_mean(tf.square(x), axis=1, keepdims=True) + epsilon)
+        return x * tf.math.rsqrt(tf.reduce_mean(tf.square(x), axis=1, keepdims=True))
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -413,7 +418,6 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
 # ---------------------------------------------------------------------------------------------------
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.nlabels    = 4
 
     # -----------------------------------------------------------------------------------------------
     # the generator model
@@ -424,34 +428,62 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
         self.to_ts      = []
         inputs          = []
 
-        inputs.append(Input(shape=(channels - self.nlabels,), name='noise'))
         inputs.append(Input(shape=(self.nlabels,), name='labels'))
-        x = Concatenate(axis=-1)([inputs[0], inputs[1]])
-        x = Reshape((1, channels))(x)
+
+        x = inputs[0]
+        x = Reshape((1, self.nlabels))(x)
+        x = DenseEQ(channels, activation=LeakyReLU(0.2), use_bias=self.usebias)(x)
+        y = tf.identity(x)
+
         x = Conv1DTransposeEQ(channels, out_shape=[self.batch_size, self.startres, channels], 
                 kernel_size=self.startres, strides=self.startres, activation=LeakyReLU(0.2),
                 use_bias=self.usebias)(x)
         x = Conv1DTransposeEQ(channels, out_shape=[self.batch_size, x.shape[1], channels], 
-                kernel_size=5, strides=1, activation=LeakyReLU(0.2),
+                kernel_size=min(self.ksize, 5), strides=1, activation=LeakyReLU(0.2),
                 use_bias=self.usebias)(x)
         x = self.pixel_norm(x)
 
+        y = Conv1DTransposeEQ(channels, out_shape=[self.batch_size, self.startres, channels], 
+                kernel_size=self.startres, strides=self.startres, activation=LeakyReLU(0.2),
+                use_bias=self.usebias)(y)
+        y = Conv1DTransposeEQ(channels, out_shape=[self.batch_size, x.shape[1], channels], 
+                kernel_size=min(self.ksize, 5), strides=1, activation=LeakyReLU(0.2),
+                use_bias=self.usebias)(y)
+        y = self.pixel_norm(y)
+
         for block in range(iters):
-            y  = Conv1DTransposeEQ(self.nchannels, out_shape=[self.batch_size, x.shape[1], self.nchannels], 
+            z1 = Conv1DTransposeEQ(1, out_shape=[self.batch_size, x.shape[1], 1], 
                     kernel_size=1, strides=1, use_bias=self.usebias, activation=LeakyReLU(0.2))(x)
-            self.to_ts.append(y)
+            z2 = Conv1DTransposeEQ(1, out_shape=[self.batch_size, x.shape[1], 1], 
+                    kernel_size=1, strides=1, use_bias=self.usebias, activation=LeakyReLU(0.2))(y)
+            z = Concatenate(axis=-1)([z1, z2])
+            self.to_ts.append(z)
+
             x = UpSampling1D()(x)
+            y = UpSampling1D()(y)
+
             for i in range(2):
                 x = Conv1DTransposeEQ(channels, out_shape=[self.batch_size, x.shape[1], channels], 
                         kernel_size=self.ksize, strides=1, activation=LeakyReLU(0.2),
                         use_bias=self.usebias)(x)
                 x = self.pixel_norm(x)
-        x = Conv1DTransposeEQ(self.nchannels, 
-                out_shape=[self.batch_size, x.shape[1], self.nchannels], 
+                y = Conv1DTransposeEQ(channels, out_shape=[self.batch_size, x.shape[1], channels], 
+                        kernel_size=self.ksize, strides=1, activation=LeakyReLU(0.2),
+                        use_bias=self.usebias)(y)
+                y = self.pixel_norm(y)
+
+        x = Conv1DTransposeEQ(1, 
+                out_shape=[self.batch_size, x.shape[1], 1], 
                 kernel_size=1, strides=1, activation=LeakyReLU(0.2),
                 use_bias=self.usebias)(x)
+        y = Conv1DTransposeEQ(1, 
+                out_shape=[self.batch_size, x.shape[1], 1], 
+                kernel_size=1, strides=1, activation=LeakyReLU(0.2),
+                use_bias=self.usebias)(y)
+
         self.to_ts = np.flip(self.to_ts, axis=0)    # puts to_ts in backwards order for the discriminator
-        outs = [x]
+        outs = Concatenate(axis=-1)([x, y])
+        outs = [outs]
         for i in range(self.to_ts.shape[0]):
             outs.append(self.to_ts[i])
         self.kernels = channels
@@ -467,42 +499,63 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
         iters       = int(math.log2(self.endres)) - int(math.log2(self.startres))
 
         inputs.append(Input(shape=(self.endres, self.nchannels), name='max_res'))
-        x = inputs[0]
+        x = inputs[0][:,:,:1]
+        y = inputs[0][:,:,-1:]
         cntr = 0
         for i in self.to_ts:
             cntr += 1
             inputs.append(Input(shape=i.shape[1:], ragged=True, name=('downscale_%d' %(cntr))))
         inputs.append(Input(shape=(self.nlabels,), ragged=True, name='labels'))
         x = Conv1DEQ(channels, kernel_size=1, strides=1, activation=None)(x)
+        x = MiniBatchStdDevTs()(x)
+        y = Conv1DEQ(channels, kernel_size=1, strides=1, activation=None)(y)
+        y = MiniBatchStdDevTs()(y)
 
         for block in range(iters):
-            x = MiniBatchStdDevTs()(x)
             x = Conv1DEQ(channels, kernel_size=self.ksize, strides=1, use_bias=self.usebias, 
                     activation=LeakyReLU(0.2))(x)
             x = Conv1DEQ(channels, kernel_size=self.ksize, strides=1, use_bias=self.usebias, 
                     activation=LeakyReLU(0.2))(x)
             x = AveragePooling1D(strides=2)(x)
-            x = Concatenate(axis=-1)([x, inputs[iteration]])
+            x = Concatenate(axis=-1)([x, inputs[iteration][:,:,:1]])
+            x = MiniBatchStdDevTs()(x)
+
+            y = Conv1DEQ(channels, kernel_size=self.ksize, strides=1, use_bias=self.usebias, 
+                    activation=LeakyReLU(0.2))(y)
+            y = Conv1DEQ(channels, kernel_size=self.ksize, strides=1, use_bias=self.usebias, 
+                    activation=LeakyReLU(0.2))(y)
+            y = AveragePooling1D(strides=2)(y)
+            y = Concatenate(axis=-1)([y, inputs[iteration][:,:,-1:]])
+            y = MiniBatchStdDevTs()(y)
+            
             iteration += 1
 
-        x = MiniBatchStdDevTs()(x)
         assert channels == self.neurs, 'channels do not == self.neurs at end of discriminator'
         x = Conv1DEQ(channels, kernel_size=min(self.ksize, 5), strides=1, use_bias=self.usebias, 
                 activation=LeakyReLU(0.2))(x)
         x = Conv1DEQ(channels, kernel_size=self.startres, strides=self.startres, use_bias=self.usebias, 
                 activation=LeakyReLU(0.2))(x)
+        y = Conv1DEQ(channels, kernel_size=min(self.ksize, 5), strides=1, use_bias=self.usebias, 
+                activation=LeakyReLU(0.2))(y)
+        y = Conv1DEQ(channels, kernel_size=self.startres, strides=self.startres, use_bias=self.usebias, 
+                activation=LeakyReLU(0.2))(y)
 
-        y = inputs[-1]
-        y = Reshape((1, self.nlabels))(y)
-        y = DenseEQ(channels, activation=None)(y)
-        y = Dot(axes=-1)([x, y])
-        # x = DenseEQ(channels, activation=LeakyReLU(0.2), use_bias=self.usebias)(x)
+        z = inputs[-1]
+        z = Reshape((1, self.nlabels))(z)
         x = Concatenate(axis=-1)([x, y])
-        # might want to do mbsd here; we do it every other time we concatenate
-        # x = MiniBatchStdDevTs()(x)
+        x = Concatenate(axis=-1)([x, z])
         x = DenseEQ(1, activation='linear', use_bias=self.usebias)(x)
 
         return Model(inputs, x, name='Discriminator')
+
+    # -----------------------------------------------------------------------------------------------
+    # 'lbls' should be an array with [l1, l2, m1, m2] in that order
+    def makewaves(self, reals, epoch, lbls):
+        print('starting wave generation')
+        print('')
+
+        outputs = self.generate_waves(lbls)
+        reals.save_objects(outputs[0], epoch, self.outpath)
 
     # -----------------------------------------------------------------------------------------------
     @tf.function
@@ -510,9 +563,8 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
         labels = []
         if self.nlabels != 0:
             labels_g = np.array([self.prepare_labels(i) for i in reals.labels_batch], dtype=np.float32)
-        noise  = np.random.normal(size=[self.batch_size, self.neurs - self.nlabels], loc=0.0, scale=1.0)
         with tf.GradientTape() as t:
-            fakes = self.G([noise, labels_g], training=True)
+            fakes = self.G(labels_g, training=True)
             yfake = self.D([fakes, labels_g], training=True)
             loss  = self.get_g_loss(yfake)
         grads = t.gradient(loss, self.G.trainable_variables)
@@ -520,7 +572,7 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
         tf.cond(goods, lambda: self.g_opt.apply_gradients(zip(grads, self.G.trainable_variables)), 
                                                                                 false_fn=tf.no_op)
 
-        return loss
+        return loss, grads
 
     # -----------------------------------------------------------------------------------------------
     @tf.function
@@ -529,10 +581,9 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
         if self.nlabels != 0:
             labels_g = np.array([self.prepare_labels(i) for i in reals.labels_batch], dtype=np.float32)
             labels_d = np.array([self.prepare_labels(i) for i in reals.labels_batch], dtype=np.float32)
-        noise  = np.random.normal(size=[self.batch_size, self.neurs - self.nlabels], loc=0.0, scale=1.0)
         self.reals = self.make_tensors(reals.objects)
         with tf.GradientTape() as t:
-            fakes = self.G([noise, labels_g], training=False)
+            fakes = self.G(labels_g, training=False)
             yfake = self.D([fakes, labels_g], training=True)
             yreal = self.D([self.reals, labels_d], training=True)
             loss  = self.get_d_loss(yreal, yfake, self.reals, fakes, labels_g, labels_d)
@@ -541,7 +592,7 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
         tf.cond(goods, lambda: self.d_opt.apply_gradients(zip(grads, self.D.trainable_variables)), 
                                                                                 false_fn=tf.no_op)
 
-        return loss
+        return loss, grads
 
     # -----------------------------------------------------------------------------------------------
     # applies a unique gp per-resolution rather than a single gp applied to all gradients
@@ -573,10 +624,17 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
     # not ideal for creating single waveforms. might have to think through that part later
     @tf.function
     def generate_samples(self, reals):
-        noise  = np.random.normal(size=[self.batch_size, self.neurs - self.nlabels], loc=0.0, scale=1.0)
         labels = np.array([self.prepare_labels(i) for i in reals.labels_batch], dtype=np.float32)
 
-        return self.G([noise, labels], training=False)
+        return self.G(labels, training=False)
+
+    # -----------------------------------------------------------------------------------------------
+    # not ideal for creating single waveforms. might have to think through that part later
+    @tf.function
+    def generate_waves(self, lbls):
+        labels = np.array([self.prepare_labels(lbls) for i in range(32)], dtype=np.float32)
+
+        return self.G(labels, training=False)
 
     # -----------------------------------------------------------------------------------------------
     def prepare_labels(self, labels, sd=True):
@@ -591,19 +649,19 @@ class MSG_CcGAN_ts(MSG_GAN_ts):
         m2_new = m2_old
         if sd == True:
             # std dev of mass is based on our physical limits of identifying neutron stars at a specific mass.
-            m1_new = m1_old + np.random.normal(0.0, 0.01)
-            m2_new = m2_old + np.random.normal(0.0, 0.01)
-            # since lambda is based a function of mass, the distribution of lambda must also take mass into account.
-            # we will apply the same offset given std dev to both lambdas to preserve important physical trends.
+            m1_new = m1_old + np.random.normal(0.0, 0.005)
+            m2_new = m2_old + np.random.normal(0.0, 0.005)
+            # since lambda is based on mass, the distribution of lambda must also take mass into account.
+            # we will apply the same offset given std dev to both lambdas to preserve the trend of the EOS.
             # the rough values of these std devs is based on studies of the likely distribution of equations 
             # of state of neutron stars.
             l_norm = np.random.normal(0.0, 1.0)
-            l1_new = l1_old + (l_norm * 10/(((m1_new + m1_old)/2)**4) )
-            l2_new = l2_old + (l_norm * 10/(((m2_new + m2_old)/2)**4) )
+            l1_new = l1_old + (l_norm * 30/(((m1_new + m1_old)/2)**4) )
+            l2_new = l2_old + (l_norm * 30/(((m2_new + m2_old)/2)**4) )
         # scale values to [0, 1]
-        m1_new /= 2
-        m2_new /= 2
-        l1_new /= 10000
-        l2_new /= 10000
+        m1_new -= 0.8
+        m2_new -= 0.8
+        l1_new = (math.log10(l1_new)-2)/2
+        l2_new = (math.log10(l2_new)-2)/2
 
         return [l1_new, l2_new, m1_new, m2_new]
