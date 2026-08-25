@@ -2,7 +2,7 @@
 
 ### Multi-Scale Conditional Generation of Binary-Neutron-Star Gravitational-Wave Time Series
 
-This repository contains a research implementation of a **multi-scale continuously conditioned generative adversarial network (MSG-CcGAN)** developed for modeling binary-neutron-star gravitational-wave simulations.
+This repository contains a research implementation of a **multi-scale continuously conditioned generative adversarial network (MSG-CcGAN)** developed for modeling binary-neutron-star (BNS) gravitational-wave simulations.
 
 The project explored whether a generative neural network could learn the relationship between a small set of physical source parameters and the corresponding simulated gravitational-wave time series. The model was implemented in **TensorFlow/Keras** and adapted multi-scale GAN concepts to long, one-dimensional scientific signals.
 
@@ -12,9 +12,9 @@ The project explored whether a generative neural network could learn the relatio
 
 ## Scientific Motivation
 
-Numerical simulations of compact-object mergers can be computationally expensive, while gravitational-wave analysis often requires exploring waveform behavior across a multidimensional physical parameter space.
+Numerical simulations of BNS mergers can be computationally expensive and few such simulations consequently exist. Gravitational-wave detection partly relies on extensive databases of such simulations for matched filtering, however. There is therefore a need for creation of highly accurate simulations with high computational efficiency. Machine learning is a natural approach to this solution.
 
-This project investigated the use of a generative neural network as a surrogate model for binary-neutron-star waveform simulations. Rather than treating the signals as generic time-series data, the network was conditioned directly on physical parameters describing the simulated binary system.
+This project investigated the use of a **generative adversarial network (GAN)** as a surrogate model for binary-neutron-star waveform simulations. 
 
 The long-term goal was to learn a mapping of the form
 
