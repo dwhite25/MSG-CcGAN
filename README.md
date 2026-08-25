@@ -30,17 +30,9 @@ The long-term objective was therefore **fast interpolation through a sparsely sa
 
 ## The Machine-Learning Problem
 
-For a binary-neutron-star system characterized by physical parameters such as component masses and tidal deformabilities, the network attempts to learn a mapping of the form
+For a binary-neutron-star system characterized by physical parameters such as component masses and tidal deformabilities, the network attempts to learn a mapping of the form $\boldsymbol{\theta} = (m_1,m_2,\Lambda_1,\Lambda_2,\ldots) \quad\longrightarrow\quad {A(t),\phi(t)},$
 
-$$
-\boldsymbol{\theta}
-=
-(m_1,m_2,\Lambda_1,\Lambda_2,\ldots)
-\quad\longrightarrow\quad
-\{A(t),\phi(t)\},
-$$
-
-where \(A(t)\) and \(\phi(t)\) describe the simulated gravitational-wave time series.
+where $A(t)$ and $\phi(t)$ describe the simulated gravitational-wave time series.
 
 Two characteristics of this problem motivated the architecture used here.
 
