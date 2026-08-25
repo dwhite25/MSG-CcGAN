@@ -2,7 +2,7 @@
 
 ### Multi-Scale Continuously Conditioned GAN for Binary-Neutron-Star Gravitational-Wave Modeling
 
-This repository contains the complete research implementation of a **multi-scale continuously conditioned generative adversarial network (MSG-CcGAN)** that I developed while conducting gravitational-wave research at the Gravitational-Wave Physics and Astronomy Center at California State University, Fullerton.
+This repository contains the complete research implementation of a **multi-scale continuously conditioned generative adversarial network (MSG-CcGAN)** that I developed while conducting research at the Gravitational-Wave Physics and Astronomy Center at California State University, Fullerton.
 
 The project investigated whether deep generative modeling could provide a fast surrogate for computationally expensive binary-neutron-star gravitational-wave simulations. The model combines techniques from **MSG-GAN** and **CcGAN**, adapting them to long, one-dimensional scientific time series conditioned on continuous physical parameters.
 
@@ -20,11 +20,11 @@ Faster waveform approximations are available, but they trade some physical accur
 
 This project explored whether a neural-network surrogate could ultimately help bridge this gap:
 
-1. generate a large database of inexpensive waveform approximants;
-2. train a generative model to learn the waveform manifold across continuous binary-neutron-star parameters; and
-3. ultimately use transfer learning with a much smaller set of accurate NR simulations.
+1. generate a large database of inexpensive waveform approximants
+2. train a generative model to learn the waveform manifold across continuous binary-neutron-star parameters
+3. ultimately use transfer learning with a much smaller set of accurate NR simulations
 
-The long-term objective was therefore not simply waveform generation, but **fast interpolation through a sparsely sampled physical simulation space**.
+The long-term objective was therefore **fast interpolation through a sparsely sampled physical simulation space**.
 
 ---
 
