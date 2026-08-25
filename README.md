@@ -2,7 +2,7 @@
 
 ### Multi-Scale Conditional Generation of Binary-Neutron-Star Gravitational-Wave Time Series
 
-This repository contains a research implementation of a **multi-scale continuously conditioned generative adversarial network** developed for modeling binary-neutron-star gravitational-wave simulations.
+This repository contains a research implementation of a **multi-scale continuously conditioned generative adversarial network (MSG-CcGAN)** developed for modeling binary-neutron-star gravitational-wave simulations.
 
 The project explored whether a generative neural network could learn the relationship between a small set of physical source parameters and the corresponding simulated gravitational-wave time series. The model was implemented in **TensorFlow/Keras** and adapted multi-scale GAN concepts to long, one-dimensional scientific signals.
 
