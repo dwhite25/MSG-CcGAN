@@ -16,7 +16,7 @@ Numerical simulations of BNS mergers can be computationally expensive and few su
 
 This project investigated the use of a **generative adversarial network (GAN)** as a surrogate model for binary-neutron-star waveform simulations. 
 
-The long-term goal was to learn a mapping of the form $(m_1,m_2,\Lambda_1,\Lambda_2) \longrightarrow$ ($\text{waveform amplitude}(t)$, $\text{waveform phase}(t)$),
+The long-term goal was to learn a mapping of the form $(m_1,m_2,\Lambda_1,\Lambda_2) \longrightarrow$ ($waveform amplitude(t)$, $waveform phase(t)$),
 
 where
 
