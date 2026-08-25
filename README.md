@@ -12,7 +12,7 @@ The project explored whether a generative neural network could learn the relatio
 
 ## Scientific Motivation
 
-Numerical simulations of BNS mergers can be computationally expensive and few such simulations consequently exist. Gravitational-wave detection partly relies on extensive databases of such simulations for matched filtering, however. There is therefore a need for creation of highly accurate simulations with high computational efficiency. Machine learning is a natural approach to this solution.
+Numerical simulations of BNS mergers can be computationally expensive and few such simulations consequently exist. Gravitational-wave detection partly relies on extensive databases of such simulations for matched filtering, however. There is therefore a need for creation of many highly accurate simulations with high computational efficiency. Machine learning is a natural approach to this solution.
 
 This project investigated the use of a **generative adversarial network (GAN)** as a surrogate model for binary-neutron-star waveform simulations. 
 
@@ -20,8 +20,8 @@ The long-term goal was to learn a mapping of the form $(m_1,m_2,\Lambda_1,\Lambd
 
 where
 
-* $(m_1,m_2)$ are the component masses, and
-* $(\Lambda_1,\Lambda_2)$ are parameters describing the tidal deformability of the neutron stars.
+* $(m_1,m_2)$ are the component masses for each neutron star, and
+* $(\Lambda_1,\Lambda_2)$ are parameters describing the tidal deformability of said stars.
 
 The resulting problem combines **generative modeling, continuous conditioning, scientific time-series analysis, and gravitational-wave physics**.
 
