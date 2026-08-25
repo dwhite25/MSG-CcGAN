@@ -2,7 +2,7 @@
 
 ### Multi-Scale Continuously Conditioned GAN for Binary-Neutron-Star Gravitational-Wave Modeling
 
-This repository contains the complete research implementation of a **multi-scale continuously conditioned generative adversarial network (MSG-CcGAN)** that I developed while conducting research at the Gravitational-Wave Physics and Astronomy Center at California State University, Fullerton.
+This repository contains the complete research implementation of a **multi-scale continuously conditioned generative adversarial network (MSG-CcGAN)** that I developed while conducting research at the Gravitational-Wave Physics and Astronomy Center (now the Nicholas and Lee Begovich Center for Gravitational-Wave Physics and Astronomy) at California State University, Fullerton.
 
 The project investigated whether deep generative modeling could provide a fast surrogate for computationally expensive binary-neutron-star gravitational-wave simulations. The model combines techniques from **MSG-GAN** and **CcGAN**, adapting them to long, one-dimensional scientific time series conditioned on continuous physical parameters.
 
@@ -32,7 +32,7 @@ The long-term objective was therefore **fast interpolation through a sparsely sa
 
 For a binary-neutron-star system characterized by physical parameters such as component masses and tidal deformabilities, the network attempts to learn a mapping of the form $\boldsymbol{\theta} = (m_1,m_2,\Lambda_1,\Lambda_2,\ldots) \quad\longrightarrow\quad {A(t),\phi(t)},$
 
-where $A(t)$ and $\phi(t)$ describe the simulated gravitational-wave time series.
+where $A(t)$ and $\phi(t)$ describe amplitude and phase of the simulated gravitational-wave time series.
 
 Two characteristics of this problem motivated the architecture used here.
 
@@ -40,7 +40,7 @@ Two characteristics of this problem motivated the architecture used here.
 
 The waveform contains physical structure over multiple temporal scales. I adapted the **MSG-GAN** architecture of Karnewar and Wang, originally developed for image generation, to one-dimensional time-series data.
 
-The generator produces representations at multiple temporal resolutions, which are supplied to corresponding stages of the discriminator. This provides gradient information at multiple scales during adversarial training.
+The generator produces representations at multiple temporal resolutions, which are supplied to corresponding stages of the discriminator. This provides gradient information at multiple scales during adversarial training and stabilizes training faster.
 
 ### Continuous and sparsely sampled labels
 
@@ -80,16 +80,16 @@ The implementation in [`classes/msggan.py`](classes/msggan.py) contains a custom
 
 Major components include:
 
-* one-dimensional convolutional and transposed-convolutional networks;
-* custom equalized-learning-rate layers;
-* multi-scale generator outputs;
-* a corresponding multi-scale discriminator;
-* minibatch-standard-deviation features;
-* continuous conditioning on physical source parameters;
-* separate modeling of waveform channels;
-* custom TensorFlow training loops;
-* adversarial regularization and gradient penalties; and
-* perturbation of conditioning labels within the continuous physical parameter space.
+* one-dimensional convolutional and transposed-convolutional networks
+* custom equalized-learning-rate layers
+* multi-scale generator outputs
+* a corresponding multi-scale discriminator
+* minibatch-standard-deviation features
+* continuous conditioning on physical source parameters
+* separate modeling of waveform channels
+* custom TensorFlow training loops
+* adversarial regularization and gradient penalties
+* perturbation of conditioning labels within the continuous physical parameter space
 
 The highest-resolution models generated time-series outputs containing up to **8192 samples per channel**.
 
@@ -101,13 +101,11 @@ The network successfully learned the broad structure of the target waveform fami
 
 One representative experiment shown below was trained for approximately **45,000 iterations (~20 hours)** using a set of mass and tidal parameters as continuous conditioning variables.
 
-**[INSERT ANIMATED GIF HERE]**
+<img width="686" height="566" alt="d2b33d39-de7d-40e4-9315-a07102cefc55" src="https://github.com/user-attachments/assets/fa78f9ae-d7ea-4ff2-9dd4-a4260574278f" />
 
 *Representative historical results from the original project. The animation compares generated waveform amplitude and phase with the corresponding target approximant as the source parameters vary.*
 
-The model reproduced the major qualitative features of the waveform family, but its errors remained too large for use as a scientifically accurate gravitational-wave surrogate.
-
-This distinction is important: the project demonstrated that the combined architecture could learn a complicated continuously parameterized waveform family, but it did **not** achieve the precision required to replace established gravitational-wave simulation methods.
+The project demonstrated that the combined architecture could learn a complicated continuously parameterized waveform family, but it did not achieve the precision required to replace established gravitational-wave simulation methods.
 
 ---
 
@@ -117,15 +115,14 @@ This project was my first substantial machine-learning research project, and the
 
 With the benefit of subsequent experience, I would approach several aspects differently today, including:
 
-* establishing substantially stronger baseline models before introducing a complex GAN architecture;
-* defining quantitative validation metrics and held-out tests earlier in the project;
-* simplifying the architecture before increasing model capacity;
-* separating physical interpolation accuracy from adversarial perceptual/qualitative performance;
-* improving experiment tracking and reproducibility;
-* designing the data pipeline around explicit metadata mappings rather than positional assumptions; and
-* evaluating whether deterministic or probabilistic neural surrogate models were better suited to the underlying scientific objective.
+* establishing substantially stronger baseline models before introducing a complex GAN architecture
+* defining quantitative validation metrics and held-out tests earlier in the project
+* simplifying the architecture before increasing model capacity
+* separating physical interpolation accuracy from adversarial perceptual/qualitative performance
+* improving experiment tracking and reproducibility
+* designing the data pipeline around explicit metadata mappings rather than positional assumptions
 
-I retain the project because it represents a substantial early exercise in **scientific machine learning, generative modeling, large scientific datasets, custom neural-network implementation, and physics-based model design**, even though the resulting model was not sufficiently accurate for scientific production use.
+I retain the project because it represents a substantial early exercise in **scientific machine learning, generative modeling, generation and management of large scientific datasets, custom neural-network implementation, and physics-based model design**, even though the resulting model was not sufficiently accurate for scientific production use.
 
 ---
 
@@ -135,21 +132,21 @@ I wrote **all code contained in this repository**.
 
 My work included:
 
-* generating and managing the waveform training database;
-* developing the waveform preprocessing and metadata pipeline;
-* studying the MSG-GAN and CcGAN literature and reference implementations;
-* adapting multi-scale adversarial methods from images to one-dimensional gravitational-wave time series;
-* incorporating continuous physical conditioning into the multiscale architecture;
-* implementing custom TensorFlow/Keras layers;
-* implementing the generator and discriminator networks;
-* implementing the custom adversarial training loop and regularization terms;
-* designing and running large-scale training experiments;
-* investigating alternative physical conditioning variables; and
-* evaluating generated waveforms against their target simulations.
+* generating and managing the waveform training database
+* developing the waveform preprocessing and metadata pipeline
+* studying the MSG-GAN and CcGAN literature and reference implementations
+* adapting multi-scale adversarial methods from images to one-dimensional gravitational-wave time series
+* incorporating continuous physical conditioning into the multiscale architecture
+* implementing custom TensorFlow/Keras layers
+* implementing the generator and discriminator networks
+* implementing the custom adversarial training loop and regularization terms
+* designing and running large-scale training experiments
+* investigating alternative physical conditioning variables
+* evaluating generated waveforms against their target simulations
 
-This work was performed under the supervision of **Prof. Jocelyn Read** at the Gravitational-Wave Physics and Astronomy Center at California State University, Fullerton.
+This work was performed under the supervision of **Prof. Jocelyn Read** at the Gravitational-Wave Physics and Astronomy Center (GWPAC) at California State University, Fullerton.
 
-At the time, I was an active member of the **LIGO Scientific Collaboration** through the CSUF gravitational-wave group.
+At the time, I was an active member of the **LIGO Scientific Collaboration** through GWPAC.
 
 ---
 
@@ -157,11 +154,11 @@ At the time, I was an active member of the **LIGO Scientific Collaboration** thr
 
 This repository contains the surviving source code from the original research project.
 
-The original waveform database, approximately four years old at the time of this cleanup, is no longer available to me. The trained model checkpoints are also not currently included.
+The original waveform database is no longer available to me. The trained model checkpoints are also not currently included.
 
 As a result, the full original training experiment cannot be reproduced from this repository alone.
 
-The original research notebook is retained to document the historical training workflow. Future cleanup of this repository may additionally provide a small synthetic example demonstrating construction and forward propagation through the architecture without requiring the original gravitational-wave dataset.
+The original research notebook is retained to document the historical training workflow. 
 
 Historical figures and animations are presented where available rather than regenerated.
 
@@ -212,20 +209,3 @@ X. Ding et al.,
 
 The continuous-conditioning methods used in this project were developed with direct reference to the techniques and accompanying implementation described in this work.
 
----
-
-## Research Context
-
-This project was developed at the **Gravitational-Wave Physics and Astronomy Center, California State University, Fullerton**, now the **Nicholas and Lee Begovich Center for Gravitational-Wave Physics and Astronomy**.
-
-I conducted this work as a member of the **LIGO Scientific Collaboration** under the supervision of Prof. Jocelyn Read.
-
----
-
-## Author
-
-**Derek D. White**
-
-Computational physicist working in scientific machine learning, statistical inference, signal processing, and physics-based data analysis.
-
-[GitHub](https://github.com/dwhite25)
