@@ -145,18 +145,6 @@ At the time, I was an active member of the **LIGO Scientific Collaboration** thr
 
 ---
 
-## Repository Status and Reproducibility
-
-This repository contains the surviving source code from the original research project.
-
-The original waveform database and rained model checkpoints are no longer available to me. As a result, the full original training experiment cannot be reproduced from this repository alone.
-
-The original research notebook is retained to document the historical training workflow. 
-
-Historical figures and animations from the original work are presented where available.
-
----
-
 ## Technologies
 
 **Machine Learning**
