@@ -101,7 +101,7 @@ The network successfully learned the broad structure of the target waveform fami
 
 One representative experiment shown below was trained for approximately **45,000 iterations (~20 hours)** using a set of mass and tidal parameters as continuous conditioning variables.
 
-<img width="686" height="566" alt="d2b33d39-de7d-40e4-9315-a07102cefc55" src="https://github.com/user-attachments/assets/fa78f9ae-d7ea-4ff2-9dd4-a4260574278f" />
+![Results](https://github.com/user-attachments/assets/fa78f9ae-d7ea-4ff2-9dd4-a4260574278f)
 
 *Representative historical results from the original project. The animation compares generated waveform amplitude and phase with the corresponding target approximant as the source parameters vary.*
 
